@@ -27,4 +27,14 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/names', async (req, res) => {
+  try {
+    const locations = await Location.find().sort({ name: 1 });
+    const locationNames = locations.map(location => location.name);
+    res.json(locationNames);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching locations' });
+  }
+});
+
 module.exports = router;
