@@ -5,6 +5,7 @@ const Election = require('../models/Election');
 const { getContractAndDefaultAccount } = require('../scripts/contractConfig');
 
 
+// 👤 Cast Vote
 router.post("/", async (req, res) => {
   try {
     const { candidateName, electionTitle } = req.body;
@@ -23,12 +24,31 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: 'Candidate does not belong to this election' });
     }
     console.log("Casting vote for:", {candidateName, electionTitle });
+    console.log("Casting vote for id:", { electionId: election._id, candidateId: candidate._id });
     const tx = await contract.methods
       .vote(election._id.toString(), candidate._id.toString())
       .send({ from: defaultAccount });
     res.json({ txHash: tx.transactionHash });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /votes/count?electionId=...&candidateId=...
+// Fetch vote count for a specific candidate in an election
+router.get('/count', async (req, res) => {
+  try {
+    const { electionId, candidateId } = req.query;
+    const { contract } = await getContractAndDefaultAccount();
+
+    if (!electionId || !candidateId) {
+      return res.status(400).json({ message: 'electionId and candidateId are required' });
+    }
+
+    const count = await contract.methods.getVoteCount(electionId, candidateId).call();
+    res.json({ electionId, candidateId, voteCount: count.toString() });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching vote count', error: error.message });
   }
 });
 
