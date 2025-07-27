@@ -31,6 +31,14 @@ contract ElectionSystem {
         bool exists;
     }
 
+    struct VoteRecord {
+    string electionId;
+    string candidateId;
+    string email;
+  }
+
+VoteRecord[] public voteRecords;
+
     mapping(uint => Location) public locations;
     uint public locationCount;
 
@@ -140,7 +148,7 @@ function getAllUsers() public view returns (
     //     candidateCount++;
     // }
 
-function vote(string memory _electionId, string memory _candidateId) public {
+function vote(string memory _email,string memory _electionId, string memory _candidateId) public {
     // You need to implement a way to check if the election and candidate exist using string IDs.
     // Example checks (assuming you have mappings for string IDs):
     // require(electionsById[_electionId].exists, "Election not found");
@@ -151,6 +159,23 @@ function vote(string memory _electionId, string memory _candidateId) public {
 
     hasVoted[_electionId][msg.sender] = true;
     votes[_electionId][_candidateId]++;
+    voteRecords.push(VoteRecord(_electionId, _candidateId, _email));
+}
+    function getAllVotes() public view returns (
+    string[] memory electionIds,
+    string[] memory candidateIds,
+    string[] memory email
+) {
+    uint len = voteRecords.length;
+    electionIds = new string[](len);
+    candidateIds = new string[](len);
+    email = new string[](len);
+
+    for (uint i = 0; i < len; i++) {
+        electionIds[i] = voteRecords[i].electionId;
+        candidateIds[i] = voteRecords[i].candidateId;
+        email[i] = voteRecords[i].email;
+    }
 }
 
     function getVoteCount(string memory _electionId, string memory _candidateId) public view returns (uint) {

@@ -23,5 +23,5 @@ async function getContractAndDefaultAccount() {
 }
 
 module.exports = {
-  getContractAndDefaultAccount
+  getContractAndDefaultAccount,web3
 };

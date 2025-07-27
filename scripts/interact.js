@@ -1,14 +1,13 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const {Web3} = require("web3");
-const fs = require("fs");
-const path = require("path");
 const connectDB = require('../config/db');
 const locationRoutes = require('../routes/locationRoutes');
 const electionRoutes = require('../routes/electionRoutes');
 const candidateRoutes = require('../routes/candidateRoutes');
 const voteRoutes = require('../routes/voteRoutes');
 const userRoutes = require('../routes/userRoutes');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('../swagger').default;
 
 
 // ======= SETUP =======
@@ -22,6 +21,7 @@ app.use('/users', userRoutes);
 app.use('/elections', electionRoutes);
 app.use('/candidates', candidateRoutes);
 app.use('/votes', voteRoutes);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 
 // ========== API Routes ==========
@@ -123,5 +123,6 @@ app.use('/votes', voteRoutes);
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`Election API running at http://localhost:${PORT}`);
+  console.log('Swagger docs at http://localhost:4000/api-docs');
 });
 

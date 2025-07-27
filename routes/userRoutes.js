@@ -5,31 +5,99 @@ const bcrypt = require('bcryptjs');
 
 const User = require('../models/Users');
 const Location = require('../models/Location');
-const { getContractAndDefaultAccount } = require('../scripts/contractConfig');
+const { getContractAndDefaultAccount,web3 } = require('../scripts/contractConfig');
 
+/**
+ * @swagger
+ * /users:
+ *   post:
+ *     summary: Register a new user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User registered successfully
+ */
 // 👤 Register User
 router.post("/", async (req, res) => {
   try {
-    const { contract, defaultAccount } = await getContractAndDefaultAccount();
     const { name, email, password, location } = req.body;
-            // Find location by name
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
     const locationDoc = await Location.findOne({ name: location });
     if (!locationDoc) {
       return res.status(404).json({ message: 'Location not found' });
     } 
 
-    console.log("Registering user:", { name, email, password, location });
-    const tx = await contract.methods
-      .registerUser(name, email, password, locationDoc._id.toString())
-      .send({ from: defaultAccount });
+    // Get all accounts and pick one not used yet
+    const { contract } = await getContractAndDefaultAccount();
+    const accounts = await web3.eth.getAccounts();
+    let usedAddresses = await User.find().distinct('ethAddress');
+    let userEthAddress = accounts.find(acc => !usedAddresses.includes(acc));
+    if (!userEthAddress) {
+      return res.status(500).json({ message: 'No available Ethereum accounts' });
+    }
 
-     
-    res.json({ txHash: tx.transactionHash });
+    // Register user on-chain
+    await contract.methods
+      .registerUser(name, email, password, locationDoc._id.toString())
+      .send({ from: userEthAddress });
+
+    // Save only email and ethAddress in MongoDB
+    const user = new User({ email, ethAddress: userEthAddress });
+    await user.save();
+
+    res.json({ message: 'User registered', ethAddress: userEthAddress });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+/**
+ * @swagger
+ * /users:
+ *   get:
+ *     summary: Get user by email
+ *     parameters:
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *           format: email
+ *         required: true
+ *         description: The email of the user to retrieve
+ *     responses:
+ *       200:
+ *         description: User details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 locationId:
+ *                   type: string
+ *                 exists:
+ *                   type: boolean
+ */
 // Get user by email , users?email=v@example.com
 router.get('/', async (req, res) => {
   try {
@@ -54,6 +122,16 @@ router.get('/', async (req, res) => {
   }
 });
 
+
+/**
+ * @swagger
+ * /users/all:
+ *   get:
+ *     summary: Get all users
+ *     responses:
+ *       200:
+ *         description: List of all users
+ */
 router.get('/all', async (req, res) => {
   try {
     const { contract } = await getContractAndDefaultAccount();
