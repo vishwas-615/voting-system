@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Election = require('../models/Election');
 const Location = require('../models/Location');
+const { find, findOne } = require('../models/Election');
 
 // POST /elections
 router.post('/', async (req, res) => {
@@ -26,10 +27,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-
-
 // GET /elections?location=Mumbai
-router.get('/', async (req, res) => {
+router.get('/by-location', async (req, res) => {
   const { location } = req.query;
   console.log(`Fetching elections for location: ${location}`);
 
@@ -58,10 +57,12 @@ router.get('/', async (req, res) => {
 
 // GET /elections
 router.get('/', async (req, res) => {
-  const elections = await Election.find().populate('location_id', 'name');
-  res.json(elections);
+  try {
+    const elections = await Election.find().populate('location_id', 'name');
+    res.json(elections);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching elections' });
+  }
 });
-
-
 
 module.exports = router;

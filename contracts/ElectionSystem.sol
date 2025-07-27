@@ -32,12 +32,12 @@ contract ElectionSystem {
     }
 
     struct VoteRecord {
-    string electionId;
-    string candidateId;
-    string email;
-  }
+        string electionId;
+        string candidateId;
+        string email;
+    }
 
-VoteRecord[] public voteRecords;
+    VoteRecord[] public voteRecords;
 
     mapping(uint => Location) public locations;
     uint public locationCount;
@@ -69,52 +69,67 @@ VoteRecord[] public voteRecords;
     // }
 
     User[] public userList;
-    function registerUser(string memory _name, string memory _email,string memory _password, string memory _locationId) public {
+    function registerUser(
+        string memory _name,
+        string memory _email,
+        string memory _password,
+        string memory _locationId
+    ) public {
         // require(!users[msg.sender].exists, "User already registered");
         // require(locations[_locationId].exists, "Invalid location");
 
-        users[msg.sender] = User(_name, _email, _password,_locationId, true);
+        users[msg.sender] = User(_name, _email, _password, _locationId, true);
         emailToAddress[_email] = msg.sender;
         userList.push(users[msg.sender]);
     }
 
-    function getUserByEmail(string memory _email) public view returns (
-    string memory name,
-    string memory email,
-    string memory password,
-    string memory locationId,
-    bool exists
-) {
-    address userAddr = emailToAddress[_email];
-    User memory user = users[userAddr];
-    return (
-        user.name,
-        user.email,
-        user.password,
-        user.locationId,
-        user.exists
-    );
-}
-
-function getAllUsers() public view returns (
-    string[] memory names,
-    string[] memory emails,
-    string[] memory locationIds,
-    bool[] memory existsArr
-) {
-    uint len = userList.length;
-    names = new string[](len);
-    emails = new string[](len);
-    locationIds = new string[](len);
-    existsArr = new bool[](len);
-
-    for (uint i = 0; i < len; i++) {
-        names[i] = userList[i].name;
-        emails[i] = userList[i].email;
-        locationIds[i] = userList[i].locationId;
-        existsArr[i] = userList[i].exists;
+    function getUserByEmail(
+        string memory _email
+    )
+        public
+        view
+        returns (
+            string memory name,
+            string memory email,
+            string memory password,
+            string memory locationId,
+            bool exists
+        )
+    {
+        address userAddr = emailToAddress[_email];
+        User memory user = users[userAddr];
+        return (
+            user.name,
+            user.email,
+            user.password,
+            user.locationId,
+            user.exists
+        );
     }
-}
+
+    function getAllUsers()
+        public
+        view
+        returns (
+            string[] memory names,
+            string[] memory emails,
+            string[] memory locationIds,
+            bool[] memory existsArr
+        )
+    {
+        uint len = userList.length;
+        names = new string[](len);
+        emails = new string[](len);
+        locationIds = new string[](len);
+        existsArr = new bool[](len);
+
+        for (uint i = 0; i < len; i++) {
+            names[i] = userList[i].name;
+            emails[i] = userList[i].email;
+            locationIds[i] = userList[i].locationId;
+            existsArr[i] = userList[i].exists;
+        }
+    }
 
     // function createElection(
     //     string memory _title,
@@ -147,38 +162,99 @@ function getAllUsers() public view returns (
     //     candidates[candidateCount] = Candidate(_name, _bio, _electionId, true);
     //     candidateCount++;
     // }
+    string[] public votedElectionIds;
+    string[] public votedCandidateIds;
+    function vote(
+        string memory _email,
+        string memory _electionId,
+        string memory _candidateId
+    ) public {
+        require(users[msg.sender].exists, "User not registered");
+        require(!hasVoted[_electionId][msg.sender], "Already voted");
 
-function vote(string memory _email,string memory _electionId, string memory _candidateId) public {
-    // You need to implement a way to check if the election and candidate exist using string IDs.
-    // Example checks (assuming you have mappings for string IDs):
-    // require(electionsById[_electionId].exists, "Election not found");
-    // require(candidatesById[_candidateId].exists, "Candidate not found");
-    require(users[msg.sender].exists, "User not registered");
-    require(!hasVoted[_electionId][msg.sender], "Already voted");
-    // require(candidatesById[_candidateId].electionId == _electionId, "Candidate not in this election");
+        hasVoted[_electionId][msg.sender] = true;
+        votes[_electionId][_candidateId]++;
+        voteRecords.push(VoteRecord(_electionId, _candidateId, _email));
 
-    hasVoted[_electionId][msg.sender] = true;
-    votes[_electionId][_candidateId]++;
-    voteRecords.push(VoteRecord(_electionId, _candidateId, _email));
-}
-    function getAllVotes() public view returns (
-    string[] memory electionIds,
-    string[] memory candidateIds,
-    string[] memory email
-) {
-    uint len = voteRecords.length;
-    electionIds = new string[](len);
-    candidateIds = new string[](len);
-    email = new string[](len);
+        // Track unique electionId
+        bool electionExists = false;
+        for (uint i = 0; i < votedElectionIds.length; i++) {
+            if (
+                keccak256(bytes(votedElectionIds[i])) ==
+                keccak256(bytes(_electionId))
+            ) {
+                electionExists = true;
+                break;
+            }
+        }
+        if (!electionExists) {
+            votedElectionIds.push(_electionId);
+        }
 
-    for (uint i = 0; i < len; i++) {
-        electionIds[i] = voteRecords[i].electionId;
-        candidateIds[i] = voteRecords[i].candidateId;
-        email[i] = voteRecords[i].email;
+        // Track unique candidateId
+        bool candidateExists = false;
+        for (uint i = 0; i < votedCandidateIds.length; i++) {
+            if (
+                keccak256(bytes(votedCandidateIds[i])) ==
+                keccak256(bytes(_candidateId))
+            ) {
+                candidateExists = true;
+                break;
+            }
+        }
+        if (!candidateExists) {
+            votedCandidateIds.push(_candidateId);
+        }
     }
-}
+    function getAllVotes()
+        public
+        view
+        returns (
+            string[] memory electionIds,
+            string[] memory candidateIds,
+            string[] memory email
+        )
+    {
+        uint len = voteRecords.length;
+        electionIds = new string[](len);
+        candidateIds = new string[](len);
+        email = new string[](len);
 
-    function getVoteCount(string memory _electionId, string memory _candidateId) public view returns (uint) {
+        for (uint i = 0; i < len; i++) {
+            electionIds[i] = voteRecords[i].electionId;
+            candidateIds[i] = voteRecords[i].candidateId;
+            email[i] = voteRecords[i].email;
+        }
+    }
+    function getAllVoteCounts()
+        public
+        view
+        returns (
+            string[] memory electionIds,
+            string[] memory candidateIds,
+            uint[] memory counts
+        )
+    {
+        uint len = votedElectionIds.length * votedCandidateIds.length;
+        electionIds = new string[](len);
+        candidateIds = new string[](len);
+        counts = new uint[](len);
+
+        uint idx = 0;
+        for (uint i = 0; i < votedElectionIds.length; i++) {
+            for (uint j = 0; j < votedCandidateIds.length; j++) {
+                electionIds[idx] = votedElectionIds[i];
+                candidateIds[idx] = votedCandidateIds[j];
+                counts[idx] = votes[votedElectionIds[i]][votedCandidateIds[j]];
+                idx++;
+            }
+        }
+    }
+
+    function getVoteCount(
+        string memory _electionId,
+        string memory _candidateId
+    ) public view returns (uint) {
         return votes[_electionId][_candidateId];
     }
 }

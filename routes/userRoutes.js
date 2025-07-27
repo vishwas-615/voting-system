@@ -2,10 +2,9 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 
-
 const User = require('../models/Users');
 const Location = require('../models/Location');
-const { getContractAndDefaultAccount,web3 } = require('../scripts/contractConfig');
+const { getContractAndDefaultAccount, web3 } = require('../scripts/contractConfig');
 
 /**
  * @swagger

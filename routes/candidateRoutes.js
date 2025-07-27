@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Candidate = require('../models/Candidate');
+const { find, findOne } = require('../models/Candidate');
 const Election = require('../models/Election');
 
 // POST /candidates
@@ -59,7 +60,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-
 // GET /candidates
 router.get('/', async (req, res) => {
   try {
@@ -69,7 +69,7 @@ router.get('/', async (req, res) => {
         select: 'title description location_id start_time end_time',
         populate: {
           path: 'location_id',
-          select: 'name' // Include only name, or remove to get full document
+          select: 'name'
         }
       });
 
@@ -79,6 +79,5 @@ router.get('/', async (req, res) => {
     res.status(500).json({ message: 'Error fetching candidates' });
   }
 });
-
 
 module.exports = router;
