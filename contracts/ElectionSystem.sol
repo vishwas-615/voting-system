@@ -8,7 +8,10 @@ contract ElectionSystem {
     }
 
     struct User {
-        string name;
+        string userName;
+        string mobileNumber;
+        string fullName;
+        string AdharNumber;
         string email;
         string password;
         string locationId;
@@ -69,19 +72,31 @@ contract ElectionSystem {
     // }
 
     User[] public userList;
-    function registerUser(
-        string memory _name,
-        string memory _email,
-        string memory _password,
-        string memory _locationId
-    ) public {
-        // require(!users[msg.sender].exists, "User already registered");
-        // require(locations[_locationId].exists, "Invalid location");
+function registerUser(
+    string memory _userName,
+    string memory _mobileNumber,
+    string memory _fullName,
+    string memory _AdharNumber,
+    string memory _email,
+    string memory _password,
+    string memory _locationId
+) public {
+    // require(!users[msg.sender].exists, "User already registered");
+    // require(locations[_locationId].exists, "Invalid location");
 
-        users[msg.sender] = User(_name, _email, _password, _locationId, true);
-        emailToAddress[_email] = msg.sender;
-        userList.push(users[msg.sender]);
-    }
+    users[msg.sender] = User(
+        _userName,
+        _mobileNumber,
+        _fullName,
+        _AdharNumber,
+        _email,
+        _password,
+        _locationId,
+        true
+    );
+    emailToAddress[_email] = msg.sender;
+    userList.push(users[msg.sender]);
+}
 
     function getUserByEmail(
         string memory _email
@@ -89,7 +104,7 @@ contract ElectionSystem {
         public
         view
         returns (
-            string memory name,
+            string memory userName,
             string memory email,
             string memory password,
             string memory locationId,
@@ -99,7 +114,7 @@ contract ElectionSystem {
         address userAddr = emailToAddress[_email];
         User memory user = users[userAddr];
         return (
-            user.name,
+            user.userName,
             user.email,
             user.password,
             user.locationId,
@@ -111,20 +126,29 @@ contract ElectionSystem {
         public
         view
         returns (
-            string[] memory names,
+            string[] memory userNames,
+            string[] memory mobileNumbers,
+            string[] memory fullNames,
+            string[] memory AdharNumbers,
             string[] memory emails,
             string[] memory locationIds,
             bool[] memory existsArr
         )
     {
         uint len = userList.length;
-        names = new string[](len);
+        userNames = new string[](len);
+        mobileNumbers = new string[](len);
+        fullNames = new string[](len);
+        AdharNumbers = new string[](len);
         emails = new string[](len);
         locationIds = new string[](len);
         existsArr = new bool[](len);
 
         for (uint i = 0; i < len; i++) {
-            names[i] = userList[i].name;
+            userNames[i] = userList[i].userName;
+            mobileNumbers[i] = userList[i].mobileNumber;
+            fullNames[i] = userList[i].fullName;
+            AdharNumbers[i] = userList[i].AdharNumber;
             emails[i] = userList[i].email;
             locationIds[i] = userList[i].locationId;
             existsArr[i] = userList[i].exists;

@@ -30,42 +30,110 @@ const { getContractAndDefaultAccount, web3 } = require('../scripts/contractConfi
  *       200:
  *         description: User registered successfully
  */
+
+
+const SALT_ROUNDS = 10; // Adjust salt rounds as needed
+
 // 👤 Register User
 router.post("/", async (req, res) => {
   try {
-    const { name, email, password, location } = req.body;
+    const { userName, mobileNumber, fullName, AdharNumber, email, password, location } = req.body;
+
+    // Check if email already registered
     const exists = await User.findOne({ email });
     if (exists) {
       return res.status(400).json({ message: 'Email already registered' });
     }
+
+    // Verify location exists
     const locationDoc = await Location.findOne({ name: location });
     if (!locationDoc) {
       return res.status(404).json({ message: 'Location not found' });
-    } 
+    }
 
-    // Get all accounts and pick one not used yet
+    // Hash the password before further steps
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+    // Get contract and accounts, same logic as before
     const { contract } = await getContractAndDefaultAccount();
     const accounts = await web3.eth.getAccounts();
-    let usedAddresses = await User.find().distinct('ethAddress');
+
+    // Find an Ethereum account not used yet
+    const usedAddresses = await User.find().distinct('ethAddress');
     let userEthAddress = accounts.find(acc => !usedAddresses.includes(acc));
     if (!userEthAddress) {
       return res.status(500).json({ message: 'No available Ethereum accounts' });
     }
 
-    // Register user on-chain
+    // Register user on-chain (still sending plaintext password ON-CHAIN as per your original code)
     await contract.methods
-      .registerUser(name, email, password, locationDoc._id.toString())
+      .registerUser(userName, mobileNumber, fullName, AdharNumber, email, hashedPassword, locationDoc._id.toString())
       .send({ from: userEthAddress });
 
-    // Save only email and ethAddress in MongoDB
+    // Save user with hashed password in MongoDB (also can save other info if needed)
     const user = new User({ email, ethAddress: userEthAddress });
     await user.save();
 
     res.json({ message: 'User registered', ethAddress: userEthAddress });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
+
+
+
+// 👤 Login User
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find user by email
+    const user = await User.findOne({ email }) // if you want location details
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+        // Get contract and accounts, same logic as before
+    const { contract } = await getContractAndDefaultAccount();
+    const userDetail = await contract.methods.getUserByEmail(email).call();
+        if (!userDetail.exists) {
+      return res.status(404).json({ message: 'User not found in Blockchain' });
+    }
+
+    // Compare password with hashed password stored
+    const isPasswordValid = await bcrypt.compare(password, userDetail.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // Optional: call your blockchain contract login method if needed
+    // Example (adjust as per your blockchain login implementation):
+    /*
+    const { contract } = await getContractAndDefaultAccount();
+    await contract.methods.loginUser(email, password).send({from: user.ethAddress});
+    */
+
+    // Return user data (omit password)
+    const userData = {
+      _id: user._id,
+      userName: user.userName,
+      email: user.email,
+      fullName: user.fullName,
+      mobileNumber: user.mobileNumber,
+      AdharNumber: user.AdharNumber,
+      location: user.location?.name || user.location,
+      ethAddress: user.ethAddress,
+    };
+
+    res.json({ message: 'Login successful', user: userData });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 
 /**
  * @swagger
@@ -135,10 +203,14 @@ router.get('/all', async (req, res) => {
   try {
     const { contract } = await getContractAndDefaultAccount();
     const users = await contract.methods.getAllUsers().call();
+    console.log(users);
 
-    // users: { names: [...], emails: [...], locationIds: [...], existsArr: [...] }
-    const userList = users.names.map((name, idx) => ({
-      name,
+    // users: { userNames: [...], mobileNumbers: [...], fullNames: [...], AdharNumbers: [...], emails: [...], locationIds: [...], existsArr: [...] }
+    const userList = users.userNames.map((userNames, idx) => ({
+      userNames,
+      mobileNumber: users.mobileNumbers[idx],
+      fullName: users.fullNames[idx],
+      AdharNumber: users.AdharNumbers[idx],
       email: users.emails[idx],
       locationId: users.locationIds[idx],
       exists: users.existsArr[idx]

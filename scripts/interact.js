@@ -8,12 +8,19 @@ const voteRoutes = require('../routes/voteRoutes');
 const userRoutes = require('../routes/userRoutes');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('../swagger').default;
+const cors = require('cors');
 
 
 // ======= SETUP =======
 const app = express();
 app.use(bodyParser.json());
 connectDB();
+
+app.use(cors({
+  origin: 'http://localhost:3001', // Your React app URL
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Routes
 app.use('/locations', locationRoutes);

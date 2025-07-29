@@ -28,7 +28,7 @@ router.post('/', async (req, res) => {
 });
 
 // GET /elections?location=Mumbai
-router.get('/by-location', async (req, res) => {
+router.get('/', async (req, res) => {
   const { location } = req.query;
   console.log(`Fetching elections for location: ${location}`);
 
