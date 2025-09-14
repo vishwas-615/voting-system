@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
+
 
 const User = require('../models/Users');
 const Location = require('../models/Location');
 const { getContractAndDefaultAccount, web3 } = require('../scripts/contractConfig');
+const SECRET_KEY = process.env.SECRET_KEY;
 
 /**
  * @swagger
@@ -70,11 +74,13 @@ router.post("/", async (req, res) => {
       .registerUser(userName, mobileNumber, fullName, AdharNumber, email, hashedPassword, locationDoc._id.toString())
       .send({ from: userEthAddress });
 
+   
+
     // Save user with hashed password in MongoDB (also can save other info if needed)
     const user = new User({ email, ethAddress: userEthAddress });
     await user.save();
 
-    res.json({ message: 'User registered', ethAddress: userEthAddress });
+    res.json({ message: 'User registered', ethAddress: userEthAddress});
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
@@ -86,6 +92,7 @@ router.post("/", async (req, res) => {
 // 👤 Login User
 router.post("/login", async (req, res) => {
   try {
+    console.log("Login request received", req.body);
     const { email, password } = req.body;
 
     // Find user by email
@@ -125,8 +132,8 @@ router.post("/login", async (req, res) => {
       location: user.location?.name || user.location,
       ethAddress: user.ethAddress,
     };
-
-    res.json({ message: 'Login successful', user: userData });
+    const token = jwt.sign({ email: user.email }, SECRET_KEY, { expiresIn: "1h" });
+    res.json({ message: 'Login successful', user: userData, token });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

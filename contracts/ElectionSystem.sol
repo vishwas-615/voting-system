@@ -155,37 +155,6 @@ function registerUser(
         }
     }
 
-    // function createElection(
-    //     string memory _title,
-    //     string memory _description,
-    //     uint _locationId,
-    //     uint _startTime,
-    //     uint _endTime
-    // ) public {
-    //     require(locations[_locationId].exists, "Invalid location");
-    //     require(_startTime < _endTime, "Invalid time range");
-
-    //     elections[electionCount] = Election(
-    //         _title,
-    //         _description,
-    //         _locationId,
-    //         _startTime,
-    //         _endTime,
-    //         true
-    //     );
-    //     electionCount++;
-    // }
-
-    // function addCandidate(
-    //     string memory _name,
-    //     string memory _bio,
-    //     uint _electionId
-    // ) public {
-    //     require(elections[_electionId].exists, "Invalid election");
-
-    //     candidates[candidateCount] = Candidate(_name, _bio, _electionId, true);
-    //     candidateCount++;
-    // }
     string[] public votedElectionIds;
     string[] public votedCandidateIds;
     function vote(
@@ -230,6 +199,9 @@ function registerUser(
             votedCandidateIds.push(_candidateId);
         }
     }
+
+
+    
     function getAllVotes()
         public
         view
